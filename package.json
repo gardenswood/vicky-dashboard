@@ -11,7 +11,10 @@
     "seed": "node scripts/seed-firestore.js",
     "firebase:deploy": "firebase deploy --only firestore",
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
-    "firebase:deploy:indexes": "firebase deploy --only firestore:indexes"
+    "firebase:deploy:indexes": "firebase deploy --only firestore:indexes",
+    "deploy": "node scripts/deploy.js",
+    "deploy:watch": "node scripts/deploy.js --watch",
+    "deploy:dry": "node scripts/deploy.js --dry-run"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
