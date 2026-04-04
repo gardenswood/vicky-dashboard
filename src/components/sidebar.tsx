@@ -17,6 +17,9 @@ import {
   ChevronRight,
   Bot,
   Truck,
+  MapPin,
+  Route,
+  Calendar,
 } from 'lucide-react'
 
 const navItems = [
@@ -38,8 +41,9 @@ const navItems = [
   {
     label: 'Configuración',
     icon: Settings,
-    children: [
+      children: [
       { label: 'Instrucciones AI', href: '/config/prompts', icon: Bot },
+      { label: 'Borradores prompt (legado)', href: '/config/prompt-borradores', icon: FileText },
       { label: 'Precios y servicios', href: '/config/precios', icon: DollarSign },
       { label: 'General', href: '/config/general', icon: SlidersHorizontal },
     ],
@@ -50,13 +54,34 @@ const navItems = [
     icon: Truck,
   },
   {
+    label: 'Agenda de entregas',
+    href: '/agenda-entregas',
+    icon: Calendar,
+  },
+  {
+    label: 'Mapa logística',
+    href: '/logistica-mapa',
+    icon: MapPin,
+  },
+  {
+    label: 'Ruta / campaña geo',
+    href: '/logistica-ruta',
+    icon: Route,
+  },
+  {
     label: 'Usuarios',
     href: '/usuarios',
     icon: FileText,
   },
 ]
 
-export default function Sidebar() {
+type SidebarProps = {
+  /** Cierra drawer móvil al navegar */
+  onNavigate?: () => void
+  className?: string
+}
+
+export default function Sidebar({ onNavigate, className }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [userEmail, setUserEmail] = useState<string>('')
@@ -76,7 +101,12 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-60 bg-brand-950 flex flex-col z-30">
+    <aside
+      className={cn(
+        'fixed inset-y-0 left-0 w-60 bg-brand-950 flex flex-col z-30',
+        className,
+      )}
+    >
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-brand-800/50">
         <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -111,6 +141,7 @@ export default function Sidebar() {
                     <Link
                       key={child.href}
                       href={child.href}
+                      onClick={() => onNavigate?.()}
                       className={cn(
                         'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all',
                         active
@@ -133,6 +164,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href!}
+              onClick={() => onNavigate?.()}
               className={cn(
                 'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all',
                 active
