@@ -563,9 +563,10 @@ export default function ConfigGeneralPage() {
                   onChange={(e) => update({ whatsappGrupoJidAgendaEntregas: e.target.value.trim() })}
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Alternativa en Cloud Run: variable{' '}
-                  <code className="bg-slate-100 px-1 rounded">WHATSAPP_GRUPO_JID_AGENDA_ENTREGAS</code>. El bot relee
-                  esta config con caché (~5 min); sin redeploy suele alcanzar.
+                  Pegá el JID completo (ej. <code className="bg-slate-100 px-1 rounded">120363…@g.us</code>) y pulsá{' '}
+                  <strong>Guardar</strong> arriba. La cuenta de WhatsApp del bot tiene que estar en el grupo. En Cloud Run
+                  podés usar <code className="bg-slate-100 px-1 rounded">WHATSAPP_GRUPO_JID_AGENDA_ENTREGAS</code>; el bot
+                  lee el JID del grupo en cada intento de aviso (no depende del caché de 5 min de la config general).
                 </p>
               </div>
             </div>
