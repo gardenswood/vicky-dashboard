@@ -11,6 +11,7 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   getDoc,
   Timestamp,
@@ -29,6 +30,8 @@ import {
   ExternalLink,
   CheckCircle2,
   XCircle,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import {
   startOfMonth,
@@ -119,6 +122,8 @@ export default function AgendaEntregasPage() {
   const [cola, setCola] = useState<ColaDoc[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
+  /** Si no es null, el modal está en modo edición de ese documento */
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     fechaDia: format(new Date(), 'yyyy-MM-dd'),
@@ -223,6 +228,66 @@ export default function AgendaEntregasPage() {
 
   const colaActiva = cola.filter((c) => c.estado === 'en_cola' || c.estado === 'notificado')
 
+  function emptyFormForDay(dia: string) {
+    return {
+      fechaDia: dia,
+      horaTexto: '',
+      titulo: '',
+      notas: '',
+      jid: '',
+      kg: '',
+      telefonoContacto: '',
+      direccion: '',
+      producto: '',
+    }
+  }
+
+  function abrirModalNuevo() {
+    setEditingId(null)
+    setForm(emptyFormForDay(format(selected, 'yyyy-MM-dd')))
+    setModal(true)
+  }
+
+  function abrirModalEditar(e: EntregaDoc) {
+    setEditingId(e.id)
+    setForm({
+      fechaDia: e.fechaDia,
+      horaTexto: e.horaTexto || '',
+      titulo: e.titulo,
+      notas: e.notas || '',
+      jid: e.jid || '',
+      kg: e.kg != null ? String(e.kg) : '',
+      telefonoContacto: e.telefonoContacto || '',
+      direccion: e.direccion || '',
+      producto: e.producto || '',
+    })
+    setModal(true)
+  }
+
+  function cerrarModal() {
+    setModal(false)
+    setEditingId(null)
+    setForm(emptyFormForDay(format(new Date(), 'yyyy-MM-dd')))
+  }
+
+  async function eliminarEntregaEvento(id: string) {
+    if (!window.confirm('¿Eliminar este evento de la agenda? No se puede deshacer.')) return
+    try {
+      await deleteDoc(doc(db, 'entregas_agenda', id))
+      setEditingId((cur) => {
+        if (cur === id) {
+          setModal(false)
+          setForm(emptyFormForDay(format(new Date(), 'yyyy-MM-dd')))
+          return null
+        }
+        return cur
+      })
+    } catch (e) {
+      console.error(e)
+      alert('No se pudo eliminar.')
+    }
+  }
+
   function candidateClienteDocIds(rawDigits: string): string[] {
     const d = rawDigits.replace(/\D/g, '')
     const out: string[] = []
@@ -274,7 +339,7 @@ export default function AgendaEntregasPage() {
     }
   }
 
-  async function guardarNuevaEntrega() {
+  async function guardarEntrega() {
     const tit = form.titulo.trim()
     if (!tit) {
       alert('Completá el título.')
@@ -292,7 +357,7 @@ export default function AgendaEntregasPage() {
       const telC = form.telefonoContacto.trim()
       const dir = form.direccion.trim()
       const prod = form.producto.trim()
-      await addDoc(collection(db, 'entregas_agenda'), {
+      const campos = {
         fechaDia: form.fechaDia,
         horaTexto: ht && ht !== '--' ? ht.slice(0, 32) : null,
         titulo: tit.slice(0, 500),
@@ -302,25 +367,26 @@ export default function AgendaEntregasPage() {
         direccion: dir ? dir.slice(0, 500) : null,
         producto: prod ? prod.slice(0, 500) : null,
         kg: kg ?? null,
-        origen: 'panel',
-        estado: 'pendiente',
-        creadoEn: serverTimestamp(),
-      })
-      setModal(false)
-      setForm({
-        fechaDia: format(new Date(), 'yyyy-MM-dd'),
-        horaTexto: '',
-        titulo: '',
-        notas: '',
-        jid: '',
-        kg: '',
-        telefonoContacto: '',
-        direccion: '',
-        producto: '',
-      })
+        actualizadoEn: serverTimestamp(),
+      }
+      if (editingId) {
+        await updateDoc(doc(db, 'entregas_agenda', editingId), campos)
+      } else {
+        await addDoc(collection(db, 'entregas_agenda'), {
+          ...campos,
+          origen: 'panel',
+          estado: 'pendiente',
+          creadoEn: serverTimestamp(),
+        })
+      }
+      cerrarModal()
     } catch (e) {
       console.error(e)
-      alert('No se pudo guardar. ¿Índice de Firestore pendiente o permisos?')
+      alert(
+        editingId
+          ? 'No se pudo guardar los cambios. ¿Índice de Firestore pendiente o permisos?'
+          : 'No se pudo guardar. ¿Índice de Firestore pendiente o permisos?',
+      )
     } finally {
       setSaving(false)
     }
@@ -378,7 +444,7 @@ export default function AgendaEntregasPage() {
             Cliente).
           </p>
         </div>
-        <button type="button" onClick={() => setModal(true)} className="btn-primary flex items-center gap-2">
+        <button type="button" onClick={abrirModalNuevo} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Nueva entrega / evento
         </button>
@@ -524,24 +590,40 @@ export default function AgendaEntregasPage() {
                         </Link>
                       )}
                     </div>
-                    {e.estado === 'pendiente' && (
-                      <div className="flex flex-col gap-1 shrink-0">
-                        <button
-                          type="button"
-                          className="text-xs text-green-700 hover:underline flex items-center gap-0.5"
-                          onClick={() => marcarEntrega(e.id, 'hecha')}
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Hecha
-                        </button>
-                        <button
-                          type="button"
-                          className="text-xs text-slate-500 hover:underline flex items-center gap-0.5"
-                          onClick={() => marcarEntrega(e.id, 'cancelada')}
-                        >
-                          <XCircle className="w-3.5 h-3.5" /> Cancelar
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-1 shrink-0 items-end">
+                      <button
+                        type="button"
+                        className="text-xs text-brand-600 hover:underline flex items-center gap-0.5"
+                        onClick={() => abrirModalEditar(e)}
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="text-xs text-red-600 hover:underline flex items-center gap-0.5"
+                        onClick={() => void eliminarEntregaEvento(e.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                      </button>
+                      {e.estado === 'pendiente' && (
+                        <>
+                          <button
+                            type="button"
+                            className="text-xs text-green-700 hover:underline flex items-center gap-0.5"
+                            onClick={() => marcarEntrega(e.id, 'hecha')}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Hecha
+                          </button>
+                          <button
+                            type="button"
+                            className="text-xs text-slate-500 hover:underline flex items-center gap-0.5"
+                            onClick={() => marcarEntrega(e.id, 'cancelada')}
+                          >
+                            <XCircle className="w-3.5 h-3.5" /> Cancelar
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -659,7 +741,9 @@ export default function AgendaEntregasPage() {
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-5 space-y-4">
-            <h3 className="font-semibold text-lg text-slate-900">Nueva entrega / evento</h3>
+            <h3 className="font-semibold text-lg text-slate-900">
+              {editingId ? 'Editar entrega / evento' : 'Nueva entrega / evento'}
+            </h3>
             <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2">
               <p className="text-xs text-slate-600">
                 Importar desde CRM: busca <code className="text-[11px]">clientes/…</code> y rellena JID,
@@ -777,17 +861,28 @@ export default function AgendaEntregasPage() {
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" className="btn-secondary" onClick={() => setModal(false)}>
-                Cerrar
-              </button>
+            <div className="flex flex-wrap justify-between gap-2 pt-2">
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className="btn-secondary" onClick={cerrarModal}>
+                  Cerrar
+                </button>
+                {editingId ? (
+                  <button
+                    type="button"
+                    className="btn-secondary border-red-200 text-red-700 hover:bg-red-50"
+                    onClick={() => void eliminarEntregaEvento(editingId)}
+                  >
+                    Eliminar
+                  </button>
+                ) : null}
+              </div>
               <button
                 type="button"
                 className="btn-primary"
                 disabled={saving}
-                onClick={() => void guardarNuevaEntrega()}
+                onClick={() => void guardarEntrega()}
               >
-                {saving ? 'Guardando…' : 'Guardar'}
+                {saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Guardar'}
               </button>
             </div>
           </div>
