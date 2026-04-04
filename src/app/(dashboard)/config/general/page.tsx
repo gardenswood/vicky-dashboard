@@ -541,8 +541,10 @@ export default function ConfigGeneralPage() {
                 Cada vez que se crea un evento en <strong>Agenda de entregas</strong> (panel, Vicky con{' '}
                 <code className="text-[11px] bg-slate-100 px-1 rounded">[ENTREGA:…]</code> o admin{' '}
                 <code className="text-[11px] bg-slate-100 px-1 rounded">#entrega</code>), el bot envía un mensaje
-                resumen a este grupo. La cuenta del bot tiene que ser miembro del grupo. JID completo terminado en{' '}
-                <code className="text-[11px]">@g.us</code> (no solo el número).
+                resumen a este grupo. La cuenta del bot tiene que ser <strong>miembro del grupo</strong>. Podés pegar el{' '}
+                <strong>JID</strong> (<code className="text-[11px]">…@g.us</code>), el <strong>enlace de invitación</strong>{' '}
+                (<code className="text-[11px]">https://chat.whatsapp.com/…</code>) o solo el <strong>código</strong> del
+                enlace.
               </p>
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <span className="text-sm text-slate-700">Avisos activos</span>
@@ -559,19 +561,20 @@ export default function ConfigGeneralPage() {
                 </label>
               </div>
               <div>
-                <label className="label">JID del grupo (…@g.us)</label>
+                <label className="label">Grupo (JID, enlace o código de invitación)</label>
                 <input
                   type="text"
                   className="input font-mono text-sm"
-                  placeholder="120363123456789012@g.us"
+                  placeholder="120363…@g.us o https://chat.whatsapp.com/…"
                   value={config.whatsappGrupoJidAgendaEntregas || ''}
                   onChange={(e) => update({ whatsappGrupoJidAgendaEntregas: e.target.value.trim() })}
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Pegá el JID completo (ej. <code className="bg-slate-100 px-1 rounded">120363…@g.us</code>) y pulsá{' '}
-                  <strong>Guardar</strong> arriba. La cuenta de WhatsApp del bot tiene que estar en el grupo. En Cloud Run
-                  podés usar <code className="bg-slate-100 px-1 rounded">WHATSAPP_GRUPO_JID_AGENDA_ENTREGAS</code>; el bot
-                  lee el JID del grupo en cada intento de aviso (no depende del caché de 5 min de la config general).
+                  Lo más estable es el JID <code className="bg-slate-100 px-1 rounded">120363…@g.us</code> (lo obtenés con{' '}
+                  <code className="bg-slate-100 px-1 rounded">npm run wa:grupo-jid</code> en el repo del bot). También podés
+                  pegar el enlace completo de invitación: el bot lo resuelve a JID al enviar el aviso. Pulsá{' '}
+                  <strong>Guardar</strong>. Variable en Cloud Run:{' '}
+                  <code className="bg-slate-100 px-1 rounded">WHATSAPP_GRUPO_JID_AGENDA_ENTREGAS</code>.
                 </p>
               </div>
             </div>
