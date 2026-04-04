@@ -377,6 +377,8 @@ export default function AgendaEntregasPage() {
           origen: 'panel',
           estado: 'pendiente',
           creadoEn: serverTimestamp(),
+          /** El bot marca true tras enviar el aviso al grupo WA (panel General). */
+          notificadoGrupoAgenda: false,
         })
       }
       cerrarModal()
