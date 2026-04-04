@@ -114,10 +114,15 @@ export default function ConfigGeneralPage() {
     setSaving(true)
     setError('')
     try {
-      await setDoc(doc(db, 'config', 'general'), {
-        ...config,
-        ultimaActualizacion: serverTimestamp(),
-      })
+      // merge: true evita borrar campos si el estado local alguna vez quedó incompleto (p. ej. JID del grupo agenda).
+      await setDoc(
+        doc(db, 'config', 'general'),
+        {
+          ...config,
+          ultimaActualizacion: serverTimestamp(),
+        },
+        { merge: true },
+      )
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch {
