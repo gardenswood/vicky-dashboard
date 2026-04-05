@@ -20,7 +20,9 @@ export default function PromptsPage() {
   const [sistemaPrompt, setSistemaPrompt] = useState('')
   const [sistemaPromptAdmin, setSistemaPromptAdmin] = useState('')
   const [mensajeBienvenida, setMensajeBienvenida] = useState('')
-  const [activeTab, setActiveTab] = useState<'principal' | 'admin' | 'bienvenida'>('principal')
+  const [mensajeClienteCierreEntrega, setMensajeClienteCierreEntrega] = useState('')
+  const [instruccionCierreEntregaGemini, setInstruccionCierreEntregaGemini] = useState('')
+  const [activeTab, setActiveTab] = useState<'principal' | 'admin' | 'bienvenida' | 'cierreEntrega'>('principal')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -42,11 +44,15 @@ export default function PromptsPage() {
         setSistemaPrompt(d.sistemaPrompt || '')
         setSistemaPromptAdmin(d.sistemaPromptAdmin || '')
         setMensajeBienvenida(d.mensajeBienvenidaTexto || '')
+        setMensajeClienteCierreEntrega(d.mensajeClienteCierreEntregaHumano || '')
+        setInstruccionCierreEntregaGemini(d.instruccionCierreEntregaHumanoGemini || '')
       } else {
         // Pre-fill with a placeholder
         setSistemaPrompt('// Pegá aquí el SYSTEM_PROMPT del bot\n// Este texto define el comportamiento completo de Vicky')
         setSistemaPromptAdmin('// Pegá aquí el SYSTEM_PROMPT_ADMIN')
         setMensajeBienvenida('Contame, ¿en qué te puedo ayudar? Escribime porfa que me es más fácil responder 😊')
+        setMensajeClienteCierreEntrega('')
+        setInstruccionCierreEntregaGemini('')
       }
     } catch (err) {
       setError('Error al cargar los prompts')
@@ -89,6 +95,8 @@ export default function PromptsPage() {
           sistemaPrompt,
           sistemaPromptAdmin,
           mensajeBienvenidaTexto: mensajeBienvenida,
+          mensajeClienteCierreEntregaHumano: mensajeClienteCierreEntrega,
+          instruccionCierreEntregaHumanoGemini: instruccionCierreEntregaGemini,
         }
       )
 
@@ -97,6 +105,8 @@ export default function PromptsPage() {
         sistemaPrompt,
         sistemaPromptAdmin,
         mensajeBienvenidaTexto: mensajeBienvenida,
+        mensajeClienteCierreEntregaHumano: mensajeClienteCierreEntrega,
+        instruccionCierreEntregaHumanoGemini: instruccionCierreEntregaGemini,
         version: currentVersion + 1,
         ultimaActualizacion: serverTimestamp(),
       })
@@ -119,6 +129,8 @@ export default function PromptsPage() {
         setSistemaPrompt(d.sistemaPrompt || '')
         setSistemaPromptAdmin(d.sistemaPromptAdmin || '')
         setMensajeBienvenida(d.mensajeBienvenidaTexto || '')
+        setMensajeClienteCierreEntrega(d.mensajeClienteCierreEntregaHumano || '')
+        setInstruccionCierreEntregaGemini(d.instruccionCierreEntregaHumanoGemini || '')
         setShowVersions(false)
       }
     } catch {
@@ -126,13 +138,23 @@ export default function PromptsPage() {
     }
   }
 
-  const currentContent = activeTab === 'principal' ? sistemaPrompt
-    : activeTab === 'admin' ? sistemaPromptAdmin
-    : mensajeBienvenida
+  const currentContent =
+    activeTab === 'principal'
+      ? sistemaPrompt
+      : activeTab === 'admin'
+        ? sistemaPromptAdmin
+        : activeTab === 'bienvenida'
+          ? mensajeBienvenida
+          : `${mensajeClienteCierreEntrega}\n\n---\n\n${instruccionCierreEntregaGemini}`
 
-  const setCurrentContent = activeTab === 'principal' ? setSistemaPrompt
-    : activeTab === 'admin' ? setSistemaPromptAdmin
-    : setMensajeBienvenida
+  const setCurrentContent =
+    activeTab === 'principal'
+      ? setSistemaPrompt
+      : activeTab === 'admin'
+        ? setSistemaPromptAdmin
+        : activeTab === 'bienvenida'
+          ? setMensajeBienvenida
+          : () => {}
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -193,6 +215,11 @@ export default function PromptsPage() {
             { id: 'principal', label: 'Prompt principal', desc: 'Comportamiento de Vicky' },
             { id: 'admin', label: 'Prompt Admin', desc: 'Comandos del dueño' },
             { id: 'bienvenida', label: 'Mensaje de bienvenida', desc: 'Texto después del audio' },
+            {
+              id: 'cierreEntrega',
+              label: 'Cierre entrega',
+              desc: 'Tras humano (#final_entrega)',
+            },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -216,6 +243,74 @@ export default function PromptsPage() {
             <div className="h-full flex items-center justify-center">
               <div className="animate-spin w-8 h-8 border-2 border-brand-600 border-t-transparent rounded-full" />
             </div>
+          ) : activeTab === 'cierreEntrega' ? (
+            previewMode ? (
+              <div className="h-full overflow-y-auto p-6 space-y-6">
+                <div className="max-w-3xl mx-auto bg-white rounded-xl border border-slate-200 p-6">
+                  <h3 className="font-semibold text-slate-900 mb-2 text-sm text-slate-500 uppercase tracking-wide">
+                    Mensaje al cliente (WhatsApp)
+                  </h3>
+                  <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-mono">
+                    {mensajeClienteCierreEntrega || '(vacío → usa default del bot)'}
+                  </pre>
+                </div>
+                <div className="max-w-3xl mx-auto bg-white rounded-xl border border-slate-200 p-6">
+                  <h3 className="font-semibold text-slate-900 mb-2 text-sm text-slate-500 uppercase tracking-wide">
+                    Instrucción a Gemini (modo cierre)
+                  </h3>
+                  <pre className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-mono">
+                    {instruccionCierreEntregaGemini || '(vacío → usa default del bot)'}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col gap-2 p-2 min-h-0">
+                <div className="flex-1 min-h-[40%] flex flex-col border border-slate-200 rounded-lg overflow-hidden bg-white">
+                  <div className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 border-b border-slate-100">
+                    Mensaje al cliente (WhatsApp) — admin <code className="text-brand-700">#final_entrega</code>
+                  </div>
+                  <MonacoEditor
+                    height="100%"
+                    defaultLanguage="plaintext"
+                    value={mensajeClienteCierreEntrega}
+                    onChange={(value: string | undefined) => setMensajeClienteCierreEntrega(value || '')}
+                    theme="vs-light"
+                    options={{
+                      wordWrap: 'on',
+                      minimap: { enabled: false },
+                      lineNumbers: 'off',
+                      fontSize: 13,
+                      fontFamily: '"Fira Code", "Cascadia Code", monospace',
+                      padding: { top: 12, bottom: 12 },
+                      scrollBeyondLastLine: false,
+                      renderLineHighlight: 'none',
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-h-[40%] flex flex-col border border-slate-200 rounded-lg overflow-hidden bg-white">
+                  <div className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 border-b border-slate-100">
+                    Instrucción a Gemini mientras <code className="text-brand-700">cierreEntregaAsistido</code>
+                  </div>
+                  <MonacoEditor
+                    height="100%"
+                    defaultLanguage="plaintext"
+                    value={instruccionCierreEntregaGemini}
+                    onChange={(value: string | undefined) => setInstruccionCierreEntregaGemini(value || '')}
+                    theme="vs-light"
+                    options={{
+                      wordWrap: 'on',
+                      minimap: { enabled: false },
+                      lineNumbers: 'off',
+                      fontSize: 13,
+                      fontFamily: '"Fira Code", "Cascadia Code", monospace',
+                      padding: { top: 12, bottom: 12 },
+                      scrollBeyondLastLine: false,
+                      renderLineHighlight: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+            )
           ) : previewMode ? (
             <div className="h-full overflow-y-auto p-6">
               <div className="max-w-3xl mx-auto bg-white rounded-xl border border-slate-200 p-6">
@@ -301,13 +396,21 @@ export default function PromptsPage() {
               Marcadores detectados
             </h3>
             <div className="space-y-1">
-              {['[IMG:', '[COTIZACION:', '[PEDIDO:', '[PDF_CERCO:', '[CONFIRMADO]', '[NOMBRE:', '[DIRECCION:', '[ZONA:'].filter(
-                (m) => currentContent.includes(m)
-              ).map((m) => (
+              {activeTab === 'cierreEntrega' ? (
+                <p className="text-xs text-slate-500">
+                  Sugerido en la instrucción a Gemini: <code className="text-brand-700">[ENTREGA:…]</code>,{' '}
+                  <code className="text-brand-700">[DIRECCION:…]</code>,{' '}
+                  <code className="text-brand-700">[NOTIFICAR_DATOS_ENTREGA]</code>
+                </p>
+              ) : (
+                ['[IMG:', '[COTIZACION:', '[PEDIDO:', '[PDF_CERCO:', '[CONFIRMADO]', '[NOMBRE:', '[DIRECCION:', '[ZONA:'].filter(
+                  (m) => currentContent.includes(m)
+                ).map((m) => (
                 <span key={m} className="block text-xs bg-brand-50 text-brand-700 px-2 py-1 rounded font-mono">
                   {m}...
                 </span>
-              ))}
+              ))
+              )}
             </div>
           </div>
 
