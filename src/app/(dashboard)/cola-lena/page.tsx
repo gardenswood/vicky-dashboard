@@ -29,6 +29,18 @@ const ESTADO_CONFIG = {
 export default function ColaLenaPage() {
   const [pedidos, setPedidos] = useState<PedidoLena[]>([])
   const [loading, setLoading] = useState(true)
+  const [capKg, setCapKg] = useState(1000)
+
+  useEffect(() => {
+    const ref = doc(db, 'config', 'general')
+    const unsub = onSnapshot(ref, (snap) => {
+      const v = snap.data()?.colaLenaCapacidadCamionKg
+      const n = typeof v === 'number' ? v : parseInt(String(v ?? ''), 10)
+      if (Number.isFinite(n) && n >= 200) setCapKg(Math.round(n))
+      else setCapKg(1000)
+    })
+    return () => unsub()
+  }, [])
 
   useEffect(() => {
     const q = query(collection(db, 'colaLena'), orderBy('fechaPedido', 'asc'))
@@ -55,7 +67,7 @@ export default function ColaLenaPage() {
 
   const enCola = pedidos.filter((p) => p.estado === 'en_cola')
   const totalKg = enCola.reduce((sum, p) => sum + p.cantidadKg, 0)
-  const pctCapacidad = Math.min(Math.round((totalKg / 1000) * 100), 100)
+  const pctCapacidad = Math.min(Math.round((totalKg / capKg) * 100), 100)
 
   return (
     <div className="p-8">
@@ -76,7 +88,7 @@ export default function ColaLenaPage() {
             <p className="text-sm text-slate-500">{enCola.length} pedidos en cola · {totalKg} kg acumulados</p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-slate-900">{totalKg} <span className="text-sm font-normal text-slate-500">/ 1000 kg</span></p>
+            <p className="text-2xl font-bold text-slate-900">{totalKg} <span className="text-sm font-normal text-slate-500">/ {capKg} kg</span></p>
             <p className={cn('text-sm font-medium', pctCapacidad >= 90 ? 'text-red-600' : pctCapacidad >= 60 ? 'text-amber-600' : 'text-brand-600')}>
               {pctCapacidad}% de capacidad
             </p>
