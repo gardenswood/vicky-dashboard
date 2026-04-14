@@ -1,4 +1,4 @@
-import { getApps, initializeApp, cert, getApp, type App } from 'firebase-admin/app'
+import { getApps, initializeApp, cert, getApp, applicationDefault, type App } from 'firebase-admin/app'
 import { getAuth, type Auth } from 'firebase-admin/auth'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 
@@ -16,16 +16,21 @@ function getAdminApp(): App {
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n')
 
-  if (!projectId || !clientEmail || !privateKey) {
+  if (projectId && clientEmail && privateKey) {
+    adminApp = initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) }, 'admin')
+    return adminApp
+  }
+
+  // Fallback para desarrollo local: permite usar Application Default Credentials (gcloud auth application-default login)
+  // o GOOGLE_APPLICATION_CREDENTIALS, sin necesidad de pegar una private key en .env.local.
+  const inferredProjectId = projectId || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  if (!inferredProjectId) {
     throw new Error(
-      'Firebase Admin: faltan variables de entorno FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL o FIREBASE_ADMIN_PRIVATE_KEY'
+      'Firebase Admin: faltan FIREBASE_ADMIN_PROJECT_ID (o NEXT_PUBLIC_FIREBASE_PROJECT_ID) para inicializar con ADC'
     )
   }
 
-  adminApp = initializeApp(
-    { credential: cert({ projectId, clientEmail, privateKey }) },
-    'admin'
-  )
+  adminApp = initializeApp({ credential: applicationDefault(), projectId: inferredProjectId }, 'admin')
   return adminApp
 }
 
